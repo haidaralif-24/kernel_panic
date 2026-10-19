@@ -21,7 +21,7 @@ All systems, commands and data are fictional.
 
 | Challenge requirement | How the game meets it |
 |---|---|
-| At least 5 stages, different puzzle types | 5 layers: decryption, data analysis, code repair, forensics, prompt engineering |
+| At least 5 stages, different puzzle types | 5 layers: decryption, data analysis, rule repair, forensics, prompt engineering |
 | Sequential unlocking | The server releases the next layer only after the current flag is valid |
 | Hints | 3 progressive tiers per layer, each with a score penalty |
 | Timer | The trace countdown, based on server timestamps |
@@ -100,7 +100,7 @@ Tuning checklist: playtest with 3 or more people, compare real times to the par 
 - Submission materials with the AI-usage disclosure
 
 **Should have**
-- Layer 3 (code repair) and layer 5 (AI guard with scripted fallback)
+- Layer 3 (rule repair, with an optional JavaScript mode) and layer 5 (AI guard with scripted fallback)
 - Sound, animation and mobile layout
 - Demo mode
 

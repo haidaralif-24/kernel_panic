@@ -16,14 +16,15 @@
 | Styling | Tailwind CSS | Fast to build, shared tokens for developer and designer |
 | Hosting | Vercel | One-click deploy, preview link per branch |
 | Server logic | Next.js route handlers | Few endpoints needed |
-| Package manager | pnpm with pinned Node version | Reproducible installs |
+| Package manager | npm with pinned Node version | Reproducible installs; `save-exact=true` in `.npmrc`, `package-lock.json` committed |
 | Repository | GitHub, pull requests per layer | Clear history of who built what |
 
 ## 2. Swappable Parts
 
 | Need | Default | Alternative |
 |---|---|---|
-| Code editor (layer 3) | CodeMirror 6 | Monaco (heavier) |
+| Slot-fill rule builder (layer 3, default) | Plain Tailwind buttons and selects | dnd-kit chips |
+| Code editor (layer 3, advanced mode) | CodeMirror 6 | Monaco (heavier) |
 | Running player code | Web Worker or sandboxed iframe, JavaScript only | Pyodide for Python |
 | Drag and drop | dnd-kit | Native HTML5 |
 | Draggable windows | Pointer events or `react-rnd` | Fixed layout (fastest) |
@@ -35,7 +36,9 @@
 | UI components | shadcn/ui | Plain Tailwind |
 | Testing | Vitest (scoring, flags, puzzle logic) | Add Playwright for a full run |
 
-**Locked decision:** player code execution is **JavaScript only**.
+**Locked decision:** player code execution is **JavaScript only**, and only in layer 3's advanced mode. The default layer 3 path is slot-fill: the client sends chosen slots as data, the server evaluates them, and no player-authored code runs anywhere.
+
+**Installed vs planned:** only what is in `package.json` exists today — `next`, `react`, `react-dom`, `jose`, `zod`, `zustand`, `server-only`, plus dev `typescript`, `tailwindcss`, `@tailwindcss/turbopack`, `eslint`, `eslint-config-next`, `vitest`. CodeMirror, dnd-kit, react-rnd, Motion, Howler and shadcn/ui are **not installed**. Add one only while building the layer that needs it, and ask first. Never upgrade an existing pin as a side effect of another task.
 
 ---
 
@@ -74,7 +77,7 @@ All endpoints: JSON, Zod validation, rate limited, `401` if the session is missi
 | `POST /api/session` | Create or read the run, return countdown info |
 | `POST /api/flag` | Validate `{ layer, flag }`, advance the layer, count failures |
 | `POST /api/hint` | Release the next hint tier for the current layer, record the penalty |
-| `POST /api/challenge` | Layer 3 challenge-response (server sends inputs, client returns outputs) |
+| `POST /api/challenge` | Layer 3. Slot mode: client sends the chosen slots as structured data, the server evaluates them against its own scaffold. Code mode: challenge-response (server sends inputs, client returns outputs) |
 | `GET /api/intranet` | Serve layer 4 simulated pages so hidden clues are not in the bundle |
 | `POST /api/guard` | Proxy the AI gatekeeper, with scripted fallback |
 | `POST /api/score` | *(Optional)* compute the final score on the server and save it |
@@ -83,7 +86,7 @@ Key responses:
 - `/api/flag` correct: `{ ok: true, nextLayer, finished }`. Wrong: `{ ok: false, failed }`. Skipping or replaying a layer: `409`. Trace expired: `410`.
 - `/api/guard` returns `{ reply, turnsLeft, breached, flag }`. `breached` is true only when the server finds the passphrase in the reply.
 
-Limits: flag length 64, guard message 500 characters, 8 guard turns per run, 10 flag submissions per minute and 6 guard calls per minute per session, AI timeout 10 seconds.
+Limits: flag length 64, guard message 500 characters, 8 guard turns per run, 12 layer 3 submissions per run, 10 flag submissions per minute and 6 guard calls per minute per session, AI timeout 10 seconds.
 
 Edge cases: refresh restores the run from the cookie, a tampered cookie returns `401` and starts a new run, an expired trace returns `410` with partial credit.
 
@@ -93,7 +96,7 @@ Edge cases: refresh restores the run from the cookie, a tampered cookie returns 
 
 | Data | Location |
 |---|---|
-| Flag fingerprints | `lib/server/answers.ts` with `import "server-only"` at the top |
+| Flag fingerprints | `src/lib/server/answers.ts` with `import "server-only"` at the top |
 | `FLAG_SECRET`, `SESSION_SECRET`, AI API key | Environment variables (Vercel settings, local `.env.local`) |
 | Guard passphrase | Environment variable, used only in the guard route and its win check |
 | Hint text | Server-only file, one tier at a time via `/api/hint` |
@@ -136,7 +139,7 @@ Rules:
 2. Progress is a signed cookie. The server never trusts progress in a request body.
 3. Hints are released one tier at a time by the server.
 4. Scores are computed on the server.
-5. Player code runs only in the browser sandbox (Worker or iframe with a 2 second timeout, no DOM or network access), never on the server.
+5. Player code runs only in the browser sandbox (Worker or iframe with a 2 second timeout, no DOM or network access), never on the server, and only in layer 3's advanced mode. Slot mode sends data, not code.
 6. The AI model never decides success.
 7. Do not log flags, guard messages or secrets.
 8. `.env*` files are gitignored. Only `.env.example` with placeholders is committed.
@@ -150,7 +153,8 @@ Checklist before submitting:
 - [ ] Edit the cookie manually and confirm it is rejected
 - [ ] Call `/api/flag` for a later layer and confirm `409`
 - [ ] Try sending a score directly and confirm it is ignored
-- [ ] Run an infinite loop in the editor and confirm the timeout works
+- [ ] Run an infinite loop in the editor and confirm the timeout works (advanced mode)
+- [ ] Send a slot payload with an operator or mask outside the allowlist and confirm it is rejected
 - [ ] Confirm repository history contains no secrets
 - [ ] Confirm the demo works with the AI provider disabled
 
@@ -166,7 +170,7 @@ Checklist before submitting:
 ## 10. Stability Practices
 
 - Pin exact dependency versions and commit the lockfile.
-- Pin Node (`.nvmrc` and `engines`).
+- Pin Node: `.nvmrc` = `22` and `engines` = `>=22.12`, matching the deploy runtime line. Keep the two in agreement; do not move to a non-LTS line without checking that the host supports it.
 - Use the latest stable releases at the start, then do not upgrade mid-project.
 - Keep `.env.example` listing every variable.
 - Run lint, type-check and Vitest in CI on every pull request.

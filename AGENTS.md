@@ -4,7 +4,7 @@ Instructions for AI coding agents working in this repository. Humans can read it
 
 ## Project
 
-**Kernel Panic** (working title) is a browser-based escape room for the iWISE Ai & Web Programming Challenge. The player is an intruder trapped in a locked-down computer, with a trace countdown running. They crack five CTF-style layers (decryption, memory dump, code repair, forensics, AI gatekeeper) to reach the root shell. Everything is fictional and simulated.
+**Kernel Panic** (working title) is a browser-based escape room for the iWISE Ai & Web Programming Challenge. The player is an intruder trapped in a locked-down computer, with a trace countdown running. They crack five CTF-style layers (decryption, memory dump, rule repair, forensics, AI gatekeeper) to reach the root shell. Everything is fictional and simulated.
 
 The planning documents are a **plan, not a spec**. They can change. If you change a decision, update the matching document in the same change.
 
@@ -37,7 +37,7 @@ Next.js App Router, TypeScript (strict), React, Tailwind CSS, npm, Vitest, Zod, 
 
 - Ask before adding a dependency. Prefer what is already installed.
 - Do not upgrade packages as a side effect of another task.
-- Player code runs in **JavaScript only**, in a browser sandbox.
+- Player code, in layer 3's optional advanced mode, runs in **JavaScript only**, in a browser sandbox. The default slot-fill path sends data, not code.
 - There is no database in the core. Progress lives in a signed cookie. Supabase is an optional leaderboard only.
 
 ## Architecture in One Paragraph
@@ -62,7 +62,7 @@ docs/                planning documents
 3. **Flags are stored as HMAC-SHA256 fingerprints** keyed by `FLAG_SECRET`, compared with `crypto.timingSafeEqual`. Never store or commit a plain flag.
 4. **Never trust the client for progress, time or score.** Read them from the verified session. Scores are computed on the server.
 5. **The AI model never decides whether the player won.** Code checks the guard's reply for the passphrase. Always keep the scripted fallback guard working when the API is down.
-6. **Player code never runs on the server.** Run it in a Web Worker or sandboxed iframe with a timeout, no network and no access to the page or cookies.
+6. **Player code never runs on the server.** Layer 3 defaults to slot-fill: the client sends the chosen slots as data and the server evaluates them, so no player-authored code runs at all. The optional advanced mode runs JavaScript in a Web Worker or sandboxed iframe with a timeout, no network and no access to the page or cookies.
 7. **The real session cookie is never part of a puzzle.** Any cookie shown in layer 4 is fictional page content.
 8. **Validate every request with Zod**, with length limits, and rate limit every endpoint.
 9. **Do not log** flags, guard messages, secrets or full request bodies.

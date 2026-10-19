@@ -51,22 +51,34 @@ Flag format: `LAB{...}` with a random part of 12 or more characters.
 
 ---
 
-## Layer 3: Firewall (Code Repair)
+## Layer 3: Firewall (Rule Repair)
 
-**Story:** The firewall decides access with a buggy function. Fix it so it accepts the right permission combinations.
+**Story:** The firewall decides access with a rule that is subtly wrong. Repair it so it accepts the right permission combinations.
 
-**Mechanic:** A short JavaScript function using bitwise permission flags, with one wrong operator or mask. The player edits and runs it. The server supplies hidden test inputs one at a time through `/api/challenge`. The player's function runs in the browser sandbox and the client returns the outputs. When every case passes, the flag is returned.
+**Two modes, one flag:** the window opens on the **rule builder** (default) with an **Advanced: JavaScript** toggle. Both modes solve the layer, return the same flag and carry no score difference. Advanced is a convenience for players who would rather read code, not a bonus and not a separate puzzle.
 
-**Interface:** CodeMirror editor, Run button, result panel, a note that only JavaScript is supported.
+**Mechanic (default, slot-fill):** The broken rule is displayed with three empty slots:
 
-**Sandbox:** Web Worker (or sandboxed iframe), 2 second timeout, no network, no access to the page or cookies.
+- how the permission bits are combined (`&`, `|`, `^`);
+- how the result is compared (`=== mask`, `!== mask`, `!== 0`);
+- which mask constant is used, chosen from a short allowlist of powers of two and small combinations.
+
+The mask is **redacted in the displayed rule** (`0x??`). The player reasons from an observed-decisions table instead: a handful of permission combinations with two columns, **expected** (what the access policy says) and **actual** (what the firewall returns). The rows where they disagree show both the wrong operator and the mask the rule is really using. Slots are dropdowns that also accept tap and drag. The client submits the chosen slots as **structured data**; the server builds the expression from its own scaffold, evaluates the full truth table and answers. **No player-authored code is executed in this mode.**
+
+**Mechanic (advanced, JavaScript):** The same rule as a short function using bitwise permission flags, with one wrong operator or mask. The player edits and runs it in the sandbox. The server supplies hidden test inputs one at a time through `/api/challenge` and the client returns the outputs. When every case passes, the flag is returned.
+
+**Interface:** One window, mode toggle at the top. The rule and the observed table are always visible; advanced mode adds the CodeMirror editor, a Run button, a result panel and a note that only JavaScript is supported.
+
+**Sandbox (advanced mode only):** Web Worker (or sandboxed iframe), 2 second timeout, no network, no access to the page or cookies.
 
 **Hints:**
-1. The function accepts the wrong combinations. Compare a case that should pass with one that should not.
+1. The rule accepts the wrong combinations. Compare a case that should pass with one that should not.
 2. Look at how the permission bits are combined and tested.
 3. Testing a bit uses a bitwise AND against the mask, then compares the result to the mask.
 
-**Risks:** The most complex layer. Fallback is client-side tests with a note about the weakness. Guard against infinite loops with the timeout.
+**Guessing:** the allowlists must keep the combination count at 40 or more (3 combining operators × 3 comparisons × 8 masks = 72). Every wrong submission counts toward the attempt penalty and the endpoint is rate limited, so brute force costs more than thinking.
+
+**Risks:** Slot-fill is the cheapest layer to build, so it is the fallback if the schedule slips — no editor, no Worker, no challenge-response. Its own risk is being too easy for a player who reads the observed table straight away; the mask allowlist and the redacted mask carry the difficulty. Advanced mode keeps the original risks (infinite loops, the 2 second timeout) but is optional.
 
 ---
 
