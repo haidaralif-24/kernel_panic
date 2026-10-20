@@ -84,6 +84,32 @@ body {
   }
 }
 
+/* Boot log: each line resolves out of a blur, like a CRT warming up. */
+@keyframes kp-boot-line {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+.kp-boot-line {
+  animation: kp-boot-line 320ms ease-out both;
+}
+
+.kp-scroll {
+  scrollbar-width: none;
+}
+
+.kp-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 .kp-flicker {
   animation: kp-flicker 900ms ease-out both;
 }
@@ -103,10 +129,12 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .kp-flicker,
   .kp-rise,
-  .kp-caret {
+  .kp-caret,
+  .kp-boot-line {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
+    filter: none !important;
   }
 
   .kp-scan {
